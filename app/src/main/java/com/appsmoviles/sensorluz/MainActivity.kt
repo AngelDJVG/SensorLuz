@@ -1,6 +1,6 @@
 package com.appsmoviles.sensorluz
 
-import android.graphics.Color
+import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -8,50 +8,61 @@ import android.hardware.SensorManager
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
+import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-
+import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
+
     private var sensorManager: SensorManager? = null
     private var lightSensor: Sensor? = null
-    private var textView: TextView? = null
-    private var layout: View? = null
-    private var imageView: ImageView? = null
-    private var catImage: Int = R.drawable.cat_dancing
+    private lateinit var imageView: ImageView
+    private lateinit var textView: TextView
+    private lateinit var layout: RelativeLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        textView = findViewById<TextView>(R.id.textView)
-        layout = findViewById<View>(R.id.layout)
-        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-        lightSensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_LIGHT)
-        imageView = findViewById<ImageView>(R.id.imageView)
+
+        // Inicializar el SensorManager
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        lightSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_LIGHT)
+        imageView = findViewById(R.id.imageView)
+        textView = findViewById(R.id.textView)
+        layout = findViewById(R.id.layout)
     }
 
     override fun onResume() {
         super.onResume()
-        sensorManager!!.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
+        // Registrar el listener del sensor cuando la actividad está en primer plano
+        lightSensor?.also { sensor ->
+            sensorManager?.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        sensorManager!!.unregisterListener(this)
+        // Desregistrar el listener del sensor cuando la actividad está en segundo plano
+        sensorManager?.unregisterListener(this)
     }
 
-    override fun onSensorChanged(event: SensorEvent) {
-        if (event.sensor.type == Sensor.TYPE_LIGHT) {
-            if (event.values[0] > 20) {
-                textView!!.text = "Hay luz en el entorno"
-                layout!!.setBackgroundColor(Color.WHITE)
-                imageView!!.setImageResource(catImage)
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        // Manejar el cambio en los valores del sensor de luz
+        event?.let {
+            val lightValue = event.values[0]
+
+            if (lightValue <= 10) {
+                imageView.visibility = View.INVISIBLE
+                textView.text = "Poca luz"
+                layout.setBackgroundColor(ContextCompat.getColor(this, R.color.black))
             } else {
-                textView!!.text = "No hay mucha luz en el entorno"
-                layout!!.setBackgroundColor(Color.BLACK)
+                imageView.visibility = View.VISIBLE
+                textView.text = "Suficiente luz"
+                layout.setBackgroundColor(ContextCompat.getColor(this, R.color.white))
             }
         }
     }
-
-    override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
 }
